@@ -1,41 +1,33 @@
 pipeline {
     agent any
+ 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                echo 'Pulling latest code from GitHub...'
-                checkout scm
+                git branch: 'main', url: 'https://github.com/Ezekiel-redhat/Birkenstock.git'
             }
         }
  
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
                 sh 'docker build -t birkenstock-app .'
             }
         }
  
-        stage('Security Scan with Trivy') {
+        stage('Scan Image with Trivy') {
             steps {
-                echo 'Running Trivy scan...'
                 sh 'trivy image birkenstock-app || true'
             }
         }
  
-        stage('Run Container') {
+        stage('Deploy Container') {
             steps {
-                echo 'Running container...'
-                sh 'docker run -d -p 5000:5000 birkenstock-app'
+                sh '''
+                    docker stop birkenstock-app || true
+                    docker rm birkenstock-app || true
+                    docker run -d -p 5000:5000 --name birkenstock-app birkenstock-app
+                '''
             }
-        }
-    }
-    post {
-        always {
-            echo 'Cleaning up workspace...'
-            cleanWs()
-        }
-        failure {
-            echo 'Pipeline failed 🚨'
         }
     }
 }
